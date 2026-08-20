@@ -5,9 +5,10 @@ they all did, one database they all read and write, and guardrails on the
 two that can spend money.
 
 ```
+SETUP.md            start here — ordered path from empty n8n account to running
 workflows/          the n8n workflow JSON files
 dashboard/          Next.js + Postgres app (the shared layer + UI)
-N8N_INTEGRATION.md  how to wire each workflow in — start here after setup
+N8N_INTEGRATION.md  per-workflow wiring details, used in SETUP.md phase 3
 ```
 
 ## What it actually adds
@@ -45,6 +46,10 @@ buttons rather than being applied.
 | Ask the Business | Slack agent Q&A history |
 
 ## Setup
+
+**New here? Follow [SETUP.md](SETUP.md)** — it sequences n8n and the
+dashboard in the order that actually works. What follows is just the
+dashboard on its own.
 
 Requires Node 18+ and a Postgres database.
 

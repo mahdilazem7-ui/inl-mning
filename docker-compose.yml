@@ -1,0 +1,31 @@
+# Local Postgres for developing the dashboard on your own machine.
+#
+#   docker compose up -d db
+#
+# Then in dashboard/.env:
+#   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/chief_of_staff?schema=public"
+#
+# This is for local development only. For the real thing, use a hosted
+# database (Neon, Supabase) so your n8n instance can reach it — see SETUP.md.
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: cos-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: chief_of_staff
+    ports:
+      - "5432:5432"
+    volumes:
+      - cos-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d chief_of_staff"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  cos-db-data:
