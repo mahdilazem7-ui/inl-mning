@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { checkIngestKey } from "@/lib/auth";
 
@@ -66,9 +67,11 @@ function oneOf<T extends readonly string[]>(
     : fallback;
 }
 
-// Prisma's Json columns reject `undefined`; normalize to null.
-function json(value: unknown) {
-  return value === undefined ? null : (value as never);
+// Prisma won't accept a bare `null` for a `Json?` column — writing SQL NULL
+// means omitting the field entirely, so map both null and undefined to
+// undefined and let the column default to NULL.
+function json(value: unknown): Prisma.InputJsonValue | undefined {
+  return value === undefined || value === null ? undefined : (value as Prisma.InputJsonValue);
 }
 
 export async function POST(req: NextRequest) {

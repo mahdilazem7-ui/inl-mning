@@ -54,7 +54,7 @@ export function ApprovalCard({
           </h3>
           {reason && <p className="mt-1 text-sm text-zinc-400">{reason}</p>}
 
-          {(before || after) && (
+          {Boolean(before || after) && (
             <div className="mt-2 flex items-center gap-3 text-sm">
               <span className="rounded bg-black/40 px-2 py-1 text-zinc-400 line-through">
                 {formatValue(before)}

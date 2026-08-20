@@ -19,6 +19,12 @@ export async function POST(req: NextRequest, { params }: { params: { key: string
     return NextResponse.json({ error: `unknown workflow "${params.key}"` }, { status: 404 });
   }
 
+  // Check the kill switch before anything else — a disabled workflow must
+  // report as disabled regardless of how it's configured otherwise.
+  if (!workflow.enabled) {
+    return NextResponse.json({ error: "workflow is disabled" }, { status: 409 });
+  }
+
   if (!workflow.n8nWebhookUrl) {
     return NextResponse.json(
       {
@@ -27,10 +33,6 @@ export async function POST(req: NextRequest, { params }: { params: { key: string
       },
       { status: 400 }
     );
-  }
-
-  if (!workflow.enabled) {
-    return NextResponse.json({ error: "workflow is disabled" }, { status: 409 });
   }
 
   try {
