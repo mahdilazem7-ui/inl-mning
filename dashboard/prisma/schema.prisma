@@ -1,0 +1,162 @@
+// Shared data layer for every workflow/automation.
+//
+// Design: each n8n workflow gets one row in `Workflow` (a registry entry)
+// and, on every execution, writes one `Run` plus zero or more of
+// Alert / Digest / Action / ContactLog / Segment / ChatQuery rows — whichever
+// shape fits what that run produced. This is deliberately generic so a new
+// workflow #17 needs a registry row and a payload, not a schema change.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum WorkflowCategory {
+  ops // AI Chief of Staff briefing, Slack agent
+  ads // A/B test reporting, ad performance alerts, self-writing ad loop
+  retention // cart recovery, back-in-stock, win-back, UGC, segmentation
+  commerce // dynamic pricing, newsletter
+  content // trend/hashtag monitoring, trend-to-drop pipeline
+  influencers // outreach tracker, discovery
+}
+
+enum RunStatus {
+  success
+  error
+  flagged // ran fine but surfaced something needing human attention
+}
+
+enum ActionStatus {
+  executed
+  pending_approval
+  rejected
+}
+
+enum AlertSeverity {
+  info
+  warning
+  critical
+}
+
+model Workflow {
+  id            String           @id @default(cuid())
+  key           String           @unique // stable slug, matches the .json filename
+  name          String
+  category      WorkflowCategory
+  description   String
+  schedule      String? // human readable, e.g. "daily 7am" or "on demand"
+  n8nWebhookUrl String? // set once the workflow is imported into n8n, enables the Trigger button
+  autonomous    Boolean          @default(false) // true = this workflow can take live action (pricing, ad spend) without a human clicking send
+  monitorOnly   Boolean          @default(true) // kill switch: true = log what it WOULD do but never touch Shopify/Meta for real
+  enabled       Boolean          @default(true)
+  sortOrder     Int              @default(0)
+  createdAt     DateTime         @default(now())
+  runs          Run[]
+}
+
+model Run {
+  id         String     @id @default(cuid())
+  workflow   Workflow   @relation(fields: [workflowId], references: [id])
+  workflowId String
+  status     RunStatus  @default(success)
+  summary    String? // one-line human summary for the activity feed
+  payload    Json? // raw payload n8n posted, kept for debugging
+  startedAt  DateTime   @default(now())
+  alerts     Alert[]
+  digests    Digest[]
+  actions    Action[]
+  segments   Segment[]
+
+  @@index([workflowId, startedAt])
+}
+
+model Alert {
+  id           String        @id @default(cuid())
+  run          Run           @relation(fields: [runId], references: [id])
+  runId        String
+  workflowKey  String
+  severity     AlertSeverity @default(warning)
+  title        String
+  message      String
+  data         Json?
+  acknowledged Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+
+  @@index([workflowKey, createdAt])
+  @@index([acknowledged])
+}
+
+model Digest {
+  id          String   @id @default(cuid())
+  run         Run      @relation(fields: [runId], references: [id])
+  runId       String
+  workflowKey String
+  title       String
+  body        String // markdown
+  data        Json?
+  createdAt   DateTime @default(now())
+
+  @@index([workflowKey, createdAt])
+}
+
+model Action {
+  id          String       @id @default(cuid())
+  run         Run          @relation(fields: [runId], references: [id])
+  runId       String
+  workflowKey String
+  type        String // price_change | ad_campaign_created | sms_sent | email_sent | offer_sent | approval_needed
+  target      String? // variant id, campaign id, customer ref
+  before      Json?
+  after       Json?
+  status      ActionStatus @default(executed)
+  reason      String? // why this action fired
+  createdAt   DateTime     @default(now())
+
+  @@index([workflowKey, createdAt])
+  @@index([status])
+}
+
+// Dedup log so the same customer never gets double-messaged across
+// abandoned-cart, back-in-stock, win-back, and UGC-ask workflows.
+model ContactLog {
+  id          String   @id @default(cuid())
+  workflowKey String
+  customerRef String // email or phone, whatever the workflow used
+  channel     String // sms | email
+  kind        String // cart_recovery | back_in_stock | winback | ugc_ask
+  createdAt   DateTime @default(now())
+
+  @@index([customerRef, kind])
+}
+
+model Segment {
+  id          String   @id @default(cuid())
+  run         Run      @relation(fields: [runId], references: [id])
+  runId       String
+  workflowKey String
+  name        String // VIP | Loyal | Bargain Hunter | Churn Risk | New
+  memberCount Int
+  criteria    Json?
+  briefTitle  String?
+  briefBody   String? // markdown campaign brief for this segment
+  createdAt   DateTime @default(now())
+
+  @@index([workflowKey, createdAt])
+}
+
+// Log of the on-demand Slack agent's Q&A, mirrored here so it shows up
+// alongside the scheduled workflows instead of living only in Slack.
+model ChatQuery {
+  id        String   @id @default(cuid())
+  question  String
+  toolUsed  String?
+  answer    String
+  askedBy   String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

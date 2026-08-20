@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-base text-zinc-200 antialiased;
+  font-feature-settings: "cv02", "cv03", "cv04";
+}
+
+.panel {
+  @apply rounded-lg border border-border bg-panel;
+}
+
+.pill {
+  @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
+}
+
+.btn {
+  @apply rounded-md border border-border bg-panel px-3 py-1.5 text-sm text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40;
+}
+
+.btn-primary {
+  @apply rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-black transition hover:brightness-110 disabled:opacity-50;
+}
+
+.input {
+  @apply w-full rounded-md border border-border bg-black/40 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-zinc-500;
+}
+
+/* Lightweight markdown rendering for Claude-generated briefing bodies. */
+.prose-brief h1,
+.prose-brief h2,
+.prose-brief h3 {
+  @apply mb-1 mt-4 font-semibold text-zinc-100;
+}
+.prose-brief p {
+  @apply mb-3 leading-relaxed text-zinc-300;
+}
+.prose-brief ul,
+.prose-brief ol {
+  @apply mb-3 ml-5 list-disc space-y-1 text-zinc-300;
+}
+.prose-brief strong {
+  @apply font-semibold text-zinc-100;
+}
+.prose-brief code {
+  @apply rounded bg-black/50 px-1 py-0.5 text-xs text-accent;
+}
